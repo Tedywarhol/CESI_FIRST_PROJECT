@@ -2,10 +2,13 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import os
+import serial   # communication série avec Arduino
 
-file = open("data.txt", "r")
-contenu = float(file.read())
-print(contenu)
+# --- CONFIG PORT ARDUINO ---
+# ⚠️ Adapter le port série selon ton système :
+#   Windows : "COM3" ou autre
+#   Linux/Mac : "/dev/ttyUSB0" ou "/dev/ttyACM0"
+arduino = serial.Serial('COM3', 9600, timeout=1) # Remplacer par les valeur de port du Arduino que j'ai
 
 
 class UTRA_GRU_App:
@@ -17,7 +20,7 @@ class UTRA_GRU_App:
         
         # Variables
         self.hauteur_var = tk.DoubleVar()
-        self.longueur_var = tk.DoubleVar(value=contenu)
+        self.longueur_var = tk.DoubleVar(value=0.0)   # Distance en temps réel
         self.nb_poulies_var = tk.IntVar(value=0)
         self.force_var = tk.DoubleVar(value=0.0)
         self.masse_var = tk.DoubleVar()
@@ -27,7 +30,7 @@ class UTRA_GRU_App:
         title_frame.pack(pady=10)
         
         tk.Label(title_frame, text="ULTRA GRU", font=("Arial", 16, "bold"), bg='white').pack()
-        tk.Label(title_frame, text="ON OFF", font=("Arial", 12), bg='white').pack()
+        tk.Label(title_frame, text="ON OFF", font=("Arial", 12), highlightcolor='red', bg='white').pack()
         
         # Séparateur
         ttk.Separator(root, orient='horizontal').pack(fill='x', padx=20, pady=5)
@@ -36,11 +39,11 @@ class UTRA_GRU_App:
         hauteur_frame = tk.Frame(root, bg='white')
         hauteur_frame.pack(pady=10, padx=20, fill='x')
         
-        tk.Label(hauteur_frame, text="CHARGE SOULEVÉ A QUELLE HAUTEUR", 
+        tk.Label(hauteur_frame, text="CHARGE SOULEVÉE À QUELLE HAUTEUR", 
                 font=("Arial", 10, "bold"), bg='white').pack(anchor='w')
         tk.Label(hauteur_frame, text="Enter the height", font=("Arial", 9), bg='white').pack(anchor='w')
         
-        entry_hauteur = tk.Frame(hauteur_frame, bg='white')
+        entry_hauteur = tk.Frame(hauteur_frame, bg='white', relief="sunken")
         entry_hauteur.pack(fill='x', pady=5)
         tk.Entry(entry_hauteur, textvariable=self.hauteur_var, width=15).pack(side='left', padx=(0, 10))
         tk.Button(entry_hauteur, text="Valider", command=self.valider_hauteur, 
@@ -50,14 +53,14 @@ class UTRA_GRU_App:
         longueur_frame = tk.Frame(root, bg='white')
         longueur_frame.pack(pady=10, padx=20, fill='x')
         
-        tk.Label(longueur_frame, text="DISTANCE", 
+        tk.Label(longueur_frame, text="DISTANCE (capteur ultrason)", 
                 font=("Arial", 10, "bold"), bg='white').pack(anchor='w')
         tk.Label(longueur_frame, text="Actual distance", font=("Arial", 9), bg='white').pack(anchor='w')
         result_distance = tk.Frame(longueur_frame, bg='white')
-        entry_distance = tk.Frame(longueur_frame, bg='white')
         result_distance.pack(fill='x', pady=5)
         tk.Label(result_distance, textvariable=self.longueur_var, 
                 font=("Arial", 10), bg='white', width=10, relief='sunken').pack(side='left')
+        tk.Label(result_distance, text="cm", font=("Arial", 10), bg='white').pack(side='left', padx=(5, 0))
         
         # Section nombre de poulies
         poulies_frame = tk.Frame(root, bg='white')
@@ -91,15 +94,13 @@ class UTRA_GRU_App:
         cesi_frame = tk.Frame(root, bg='white')
         cesi_frame.pack(pady=10)
         
-        # Charger le logo CESI (s'il existe)
         logo_path = os.path.join("src", "cesi_logo.png")
         try:
             logo_image = Image.open(logo_path)
-            logo_image = logo_image.resize((100, 50), Image.LANCZOS)
+            logo_image = logo_image.resize((100, 100), Image.LANCZOS)
             self.cesi_logo = ImageTk.PhotoImage(logo_image)
             tk.Label(cesi_frame, image=self.cesi_logo, bg='white').pack()
         except:
-            # Si le logo n'est pas trouvé, afficher du texte
             tk.Label(cesi_frame, text="CESI", font=("Arial", 16, "bold"), bg='white').pack()
         
         tk.Label(cesi_frame, text="ÉCOLE D'INGÉNIEURS", font=("Arial", 12), bg='white').pack()
@@ -127,6 +128,9 @@ class UTRA_GRU_App:
                  bg='#E0E0E0', relief='flat').pack(side='left')
         tk.Label(entry_charge, text="kg", font=("Arial", 10), bg='white').pack(side='left', padx=(5, 0))
     
+        # Lancer la lecture du capteur Arduino
+        self.lire_distance()
+
     def valider_hauteur(self):
         try:
             hauteur = self.hauteur_var.get()
@@ -139,21 +143,24 @@ class UTRA_GRU_App:
         except:
             messagebox.showerror("Erreur", "Veuillez entrer une valeur numérique valide")
     
-    def valider_longueur(self):
+    def lire_distance(self):
+        """Lire en continu la distance depuis Arduino et mettre à jour l'UI"""
         try:
-            longueur = self.longueur_var.get()
-            if longueur <= 0:
-                messagebox.showerror("Erreur", "La longueur doit être positive")
-            elif longueur > 3:
-                messagebox.showerror("Erreur", "La longueur ne peut pas dépasser 3 m")
-            else:
-                messagebox.showinfo("Succès", f"Longueur validée: {longueur} m")
+            if arduino.in_waiting > 0:
+                data = arduino.readline().decode('utf-8').strip()
+                if data.replace('.', '', 1).isdigit():  # Vérifie nombre
+                    distance = float(data)
+                    self.longueur_var.set(distance)
+                    # Optionnel : avertir si < 30 cm
+                    if distance < 30:
+                        messagebox.showwarning("Attention", f"Obstacle proche : {distance} cm")
         except:
-            messagebox.showerror("Erreur", "Veuillez entrer une valeur numérique valide")
+            pass
+        # relance après 500ms
+        self.root.after(500, self.lire_distance)
     
     def calculer_tout(self):
         try:
-            # Vérifier la masse
             masse = self.masse_var.get()
             if masse <= 0:
                 messagebox.showerror("Erreur", "La masse doit être positive")
@@ -162,27 +169,17 @@ class UTRA_GRU_App:
                 messagebox.showerror("Erreur", "La masse ne peut pas dépasser 300 kg")
                 return
             
-            # Vérifier la hauteur
             hauteur = self.hauteur_var.get()
             if hauteur <= 0 or hauteur > 4:
-                messagebox.showerror("Erreur", "Veuillez d'abord entrer une hauteur valide (0-4 m)")
+                messagebox.showerror("Erreur", "Veuillez entrer une hauteur valide (0-4 m)")
                 return
             
-            # Vérifier la longueur
-            longueur = self.longueur_var.get()
-            if longueur <= 0 or longueur > 3:
-                messagebox.showerror("Erreur", "Veuillez d'abord entrer une longueur valide (0-3 m)")
-                return
+            g = 9.81
+            poids = masse * g
             
-            # Calculs (exemple simplifié)
-            g = 9.81  # gravité
-            poids = masse * g  # en Newtons
-            
-            # Calcul du nombre de poulies nécessaires (capacité de 1000N par poulie)
             nb_poulies = max(1, int(poids / 1000) + (1 if poids % 1000 > 0 else 0))
             self.nb_poulies_var.set(nb_poulies)
             
-            # Calcul de la force nécessaire par poulie
             force_par_poulie = poids / (nb_poulies * 2)
             self.force_var.set(round(force_par_poulie, 2))
             
