@@ -58,7 +58,7 @@ def calculer():
         # Recommandation poulies (chaque poulie divise l’effort par 2)
         poulies = 0
         effort = F
-        while effort > 200 and poulies < 4 :
+        while effort > 200 and poulies < 3 :
             poulies += 1
             effort = F / (2 ** poulies)
 
