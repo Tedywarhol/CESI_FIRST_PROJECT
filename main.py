@@ -58,7 +58,7 @@ def calculer():
         # Recommandation poulies (chaque poulie divise l’effort par 2)
         poulies = 0
         effort = F
-        while effort > 200 and poulies < 4:   # seuil arbitraire pour confort
+        while effort > 200 and poulies < 4 :
             poulies += 1
             effort = F / (2 ** poulies)
 
