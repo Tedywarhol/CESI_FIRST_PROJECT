@@ -6,7 +6,7 @@ import os
 # ================== CONFIGURATION ARDUINO ==================
 # Entrer le bon port (COMx sous Windows)
 try:
-    arduino = serial.Serial('COM3', 9600, timeout=1)
+    arduino = serial.Serial('COM8', 9600, timeout=6)
 except:
     arduino = None
     print("Impossible d'ouvrir le port série. Vérifier que la carte est branchée.")
@@ -29,6 +29,8 @@ def demarrer():
     enterHauteur.config(state="normal")
     validerMasse.config(state="normal")
     validerHauteur.config(state="normal")
+    distanceAffiche.config(state="normal", background="white", fg="black")
+
     messagebox.showinfo("INFO", "Le calculateur est activé.\nEntrez la masse et la hauteur.")
 
 def arreter():
@@ -37,7 +39,8 @@ def arreter():
     enterHauteur.config(state="disabled")
     validerMasse.config(state="disabled")
     validerHauteur.config(state="disabled")
-    distanceAffiche.config(text=" ")
+    distanceAffiche.config(fg='grey', background="grey")
+    distanceAffiche.config(text="")
     poulieAffiche.config(text=" ")
     forceAffiche.config(text=" ")
     messagebox.showinfo("INFO", "Le calculateur est désactivé.")
@@ -104,6 +107,11 @@ off = tk.Button(ultraGru, text='OFF', font=('open sans', 15, 'bold'),
                 bg='white', fg='black', command=arreter)
 off.place(x=50, y=20)
 
+# ================== LOGO ==================
+logoCESI = tk.PhotoImage(file='src/cesi_logo.png')
+CESI = tk.Label(ultraGru, image=logoCESI, bg='#d9d9d9')
+CESI.place(x=500, y=-50)
+
 # ================== MASSE ==================
 masseText = tk.Label(ultraGru, text='NB : MAX = 300 Kg',
                      font=('arial', 10, 'bold'), fg='red', bg='#d9d9d9')
@@ -131,12 +139,12 @@ validerHauteur = tk.Button(ultraGru, text='Valider',
                            state="disabled", command=calculer)
 validerHauteur.place(x=150, y=88)
 
-# ================== DISTANCE ==================
-distanceText = tk.Label(ultraGru, text='DISTANCE',
+# ================== Capteur Proximité Obstacle ==================
+distanceText = tk.Label(ultraGru, text='OBSTACLE A',
                         font=('open sans', 10, 'bold'), fg='black', bg='#d9d9d9')
 distanceText.place(x=5, y=130)
 distanceAffiche = tk.Label(ultraGru, text='---',
-                           font=('open sans', 10, 'bold'), fg='black', bg='white', border='4')
+                           font=('open sans', 10, 'bold'), fg='black', bg='white', border='4', width=10)
 distanceAffiche.place(x=5, y=150)
 
 # ================== POULIES ==================
