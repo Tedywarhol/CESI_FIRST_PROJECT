@@ -4,12 +4,12 @@ import serial
 import os
 
 # ================== CONFIGURATION ARDUINO ==================
-# ⚠️ Mets le bon port (COMx sous Windows, /dev/ttyUSBx sous Linux/Mac)
+# Entrer le bon port (COMx sous Windows)
 try:
     arduino = serial.Serial('COM3', 9600, timeout=1)
 except:
     arduino = None
-    print("⚠️ Impossible d'ouvrir le port série. Vérifie que la carte est branchée.")
+    print("Impossible d'ouvrir le port série. Vérifier que la carte est branchée.")
 
 # ================== FENETRE PRINCIPALE 
 ultraGru = tk.Tk()
